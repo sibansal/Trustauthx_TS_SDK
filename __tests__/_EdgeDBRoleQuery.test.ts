@@ -1,4 +1,4 @@
-import { _EdgeDBRoleQuery } from "../../src/edge_db_role_query/_EdgeDBRoleQuery";
+import { _EdgeDBRoleQuery } from "../src/_EdgeDBRoleQuery";
 import { roles } from "./common.test";
 
 describe('_EdgeDBRoleQuery', () => {

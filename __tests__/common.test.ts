@@ -1,4 +1,4 @@
-import { Role } from "../../src/edge_db_role_query/scheme";
+import { Role } from "../src/scheme";
 
 export const roles: Role[] = [
     {

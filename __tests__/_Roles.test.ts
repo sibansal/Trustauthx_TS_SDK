@@ -1,4 +1,4 @@
-import { _Roles } from "../../src/edge_db_role_query/_Roles";
+import { _Roles } from "../src/_Roles";
 import { roles } from "./common.test";
 
 describe("_Roles", () => {

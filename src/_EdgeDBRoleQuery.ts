@@ -1,7 +1,7 @@
 import * as sqlite3 from 'sqlite3';
 import {Permission as RolePermissions} from './scheme';
 import {Role} from './scheme';
-import { AuthLiteClient } from '..';
+import { AuthLiteClient } from '.';
 
 export class _EdgeDBRoleQuery
 {
