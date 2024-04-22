@@ -1,1 +1,0 @@
-export type RolePermissions = Record<string, any>;

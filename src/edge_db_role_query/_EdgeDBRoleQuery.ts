@@ -1,6 +1,6 @@
 import * as sqlite3 from 'sqlite3';
-import {RolePermissions} from './RolePermissions';
-import {Role} from './Role';
+import {Permission as RolePermissions} from './scheme';
+import {Role} from './scheme';
 import { AuthLiteClient } from '..';
 
 export class _EdgeDBRoleQuery
@@ -49,7 +49,7 @@ export class _EdgeDBRoleQuery
         if (this.inMemory) {
             _EdgeDBRoleQuery.roles = {};
             roles.forEach(role => {
-                _EdgeDBRoleQuery.roles![role.role_id] = role.permissions;
+                _EdgeDBRoleQuery.roles![role.rol_id] = role.permissions;
             });
         } else {
             this.conn = new sqlite3.Database(':memory:');
@@ -61,42 +61,13 @@ export class _EdgeDBRoleQuery
                 )`)
                 const stmt = this.conn!.prepare('INSERT INTO roles VALUES (?, ?)');
                 roles.forEach(role => {
-                    stmt.run(role.role_id, JSON.stringify(role.permissions));
+                    stmt.run(role.rol_id, JSON.stringify(role.permissions));
                 });
                 stmt.finalize();
                 this.conn!.run('COMMIT');
             });
         }
         this.countRoles();
-    }
-
-    async countRoles(): Promise<number> {
-        /**
-         * Returns the number of roles stored.
-         * 
-         * @returns {Promise<number>} - The number of roles stored.
-         */
-        return new Promise<number>((resolve, reject) => {
-            if (this.inMemory) {
-                const r = Object.keys(_EdgeDBRoleQuery.roles || {}).length;
-                _EdgeDBRoleQuery.totalRoles = r;
-                resolve(r);
-            } else {
-                if (!this.conn) {
-                    reject(new Error('Database connection is not initialized'));
-                    return;
-                }
-                this.conn.get('SELECT COUNT(*) AS count FROM roles', (err, row) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        const r = (row as { count: number })?.count || 0;
-                        _EdgeDBRoleQuery.totalRoles = r;
-                        resolve(r);
-                    }
-                });
-            }
-        });
     }
 
     async query(roleId?: string, permissionKey?: string): Promise<{ [roleId: string]: RolePermissions }
@@ -183,16 +154,46 @@ export class _EdgeDBRoleQuery
          * @returns {Promise<boolean>} - True if the permission value matches the expected value, False otherwise.
          */
         return new Promise<boolean>((resolve, reject) => {
+            let permissions:RolePermissions|null;
             if (this.inMemory) {
-                const permissions = _EdgeDBRoleQuery.roles?.[roleId];
-                resolve(permissions ? permissions[permissionKey] === permissionVal : false);
+                permissions = _EdgeDBRoleQuery.roles?.[roleId];   
             } else {
                 this.conn!.get('SELECT permissions FROM roles WHERE role_id = ?', [roleId], (err, row: { permissions: string }) => {
                     if (err) {
                         reject(err);
                     } else {
-                        const permissions: RolePermissions | null = row ? JSON.parse(row.permissions) : null;
-                        resolve(permissions ? permissions[permissionKey] === permissionVal : false);
+                        permissions = row ? JSON.parse(row.permissions) : null;
+                    }
+                });
+            }
+            const getPermission = permissions.find(permission => permission.name === permissionKey)
+            resolve(permissions ? getPermission.value === permissionVal : false);
+        });
+    }
+
+    async countRoles(): Promise<number> {
+        /**
+         * Returns the number of roles stored.
+         * 
+         * @returns {Promise<number>} - The number of roles stored.
+         */
+        return new Promise<number>((resolve, reject) => {
+            if (this.inMemory) {
+                const r = Object.keys(_EdgeDBRoleQuery.roles || {}).length;
+                _EdgeDBRoleQuery.totalRoles = r;
+                resolve(r);
+            } else {
+                if (!this.conn) {
+                    reject(new Error('Database connection is not initialized'));
+                    return;
+                }
+                this.conn.get('SELECT COUNT(*) AS count FROM roles', (err, row) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const r = (row as { count: number })?.count || 0;
+                        _EdgeDBRoleQuery.totalRoles = r;
+                        resolve(r);
                     }
                 });
             }

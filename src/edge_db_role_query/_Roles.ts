@@ -1,5 +1,5 @@
-import { _EdgeDBRoleQuery } from "./EdgeDBRoleQuery";
-import { Role } from "./Role";
+import { _EdgeDBRoleQuery } from "./_EdgeDBRoleQuery";
+import { Role } from "./scheme";
 export class _Roles extends _EdgeDBRoleQuery
 {
     static instances: _Roles[] = [];
