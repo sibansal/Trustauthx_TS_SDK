@@ -1,15 +1,14 @@
-import { EdgeDBRoleQuery } from "../../src/edge_db_role_query/EdgeDBRoleQuery";
-
+import { _EdgeDBRoleQuery } from "../../src/edge_db_role_query/EdgeDBRoleQuery";
 const roles = [
     { role_id: 'admin', permissions: { read: true, write: true } },
     { role_id: 'user', permissions: { read: true, write: false } }
 ];
 
-describe('EdgeDBRoleQuery', () => {
+describe('_EdgeDBRoleQuery', () => {
     let roleQuery;
 
     beforeEach(() => {
-        roleQuery = new EdgeDBRoleQuery(roles);
+        roleQuery = new _EdgeDBRoleQuery(roles);
     });
 
     afterEach(() => {
@@ -20,14 +19,14 @@ describe('EdgeDBRoleQuery', () => {
 
     describe('constructor', () => {
         test('should initialize roles in memory', () => {
-            expect(EdgeDBRoleQuery.roles).toEqual(expect.objectContaining({
+            expect(_EdgeDBRoleQuery.roles).toEqual(expect.objectContaining({
                 admin: { read: true, write: true },
                 user: { read: true, write: false }
             }));
         });
 
         test('should initialize totalRoles count', () => {
-            expect(EdgeDBRoleQuery.totalRoles).toBe(2);
+            expect(_EdgeDBRoleQuery.totalRoles).toBe(2);
         });
     });
 

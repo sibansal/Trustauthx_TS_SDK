@@ -3,7 +3,7 @@ import {RolePermissions} from './RolePermissions';
 import {Role} from './Role';
 import { AuthLiteClient } from '..';
 
-export class EdgeDBRoleQuery
+export class _EdgeDBRoleQuery
 {
     static totalRoles: number = 0;
     static roles: { [roleId: string]: RolePermissions } | null = null;
@@ -16,9 +16,9 @@ export class EdgeDBRoleQuery
         this.inMemory = inMemory;
 
         if (this.inMemory) {
-            EdgeDBRoleQuery.roles = {};
+            _EdgeDBRoleQuery.roles = {};
             roles.forEach(role => {
-                EdgeDBRoleQuery.roles![role.role_id] = role.permissions;
+                _EdgeDBRoleQuery.roles![role.role_id] = role.permissions;
             });
         } else {
             this.conn = new sqlite3.Database(':memory:');
@@ -42,8 +42,8 @@ export class EdgeDBRoleQuery
     async countRoles(): Promise<number> {
         return new Promise<number>((resolve, reject) => {
             if (this.inMemory) {
-                const r = Object.keys(EdgeDBRoleQuery.roles || {}).length;
-                EdgeDBRoleQuery.totalRoles = r;
+                const r = Object.keys(_EdgeDBRoleQuery.roles || {}).length;
+                _EdgeDBRoleQuery.totalRoles = r;
                 resolve(r);
             } else {
                 if (!this.conn) {
@@ -55,7 +55,7 @@ export class EdgeDBRoleQuery
                         reject(err);
                     } else {
                         const r = (row as { count: number })?.count || 0;
-                        EdgeDBRoleQuery.totalRoles = r;
+                        _EdgeDBRoleQuery.totalRoles = r;
                         resolve(r);
                     }
                 });
@@ -67,20 +67,20 @@ export class EdgeDBRoleQuery
         return new Promise<any>((resolve, reject) => {
             if (this.inMemory) {
                 if (roleId && permissionKey) {
-                    const role = EdgeDBRoleQuery.roles?.[roleId];
+                    const role = _EdgeDBRoleQuery.roles?.[roleId];
                     resolve(role ? role[permissionKey] : null);
                 } else if (roleId) {
-                    resolve(EdgeDBRoleQuery.roles?.[roleId] || null);
+                    resolve(_EdgeDBRoleQuery.roles?.[roleId] || null);
                 } else if (permissionKey) {
                     const result: { [roleId: string]: string } = {};
-                    for (const [roleId, permissions] of Object.entries(EdgeDBRoleQuery.roles || {})) {
+                    for (const [roleId, permissions] of Object.entries(_EdgeDBRoleQuery.roles || {})) {
                         if (permissionKey in permissions) {
                             result[roleId] = permissions[permissionKey];
                         }
                     }
                     resolve(result);
                 } else {
-                    resolve(EdgeDBRoleQuery.roles || null);
+                    resolve(_EdgeDBRoleQuery.roles || null);
                 }
             } else {
                 if (roleId && permissionKey) {
@@ -132,7 +132,7 @@ export class EdgeDBRoleQuery
     async validate(roleId: string, permissionKey: string, permissionVal: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             if (this.inMemory) {
-                const permissions = EdgeDBRoleQuery.roles?.[roleId];
+                const permissions = _EdgeDBRoleQuery.roles?.[roleId];
                 resolve(permissions ? permissions[permissionKey] === permissionVal : false);
             } else {
                 this.conn!.get('SELECT permissions FROM roles WHERE role_id = ?', [roleId], (err, row: { permissions: string }) => {
