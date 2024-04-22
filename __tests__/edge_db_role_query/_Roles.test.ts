@@ -23,6 +23,12 @@ describe("_Roles", () => {
       secret_key,
       API_BASE_URL
     );
+
+    jest.spyOn(console, 'log');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('constructor', () => {

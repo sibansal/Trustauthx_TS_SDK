@@ -5,14 +5,45 @@ import { AuthLiteClient } from '..';
 
 export class _EdgeDBRoleQuery
 {
+    /**
+     * A class for querying and managing roles and permissions.
+     * 
+     * @property {boolean} inMemory - Flag indicating whether to store the roles in-memory or in a SQLite database.
+     * @property {sqlite3.Database | null} conn - The SQLite database connection (database mode).
+     * 
+     * @method
+     * constructor(roles: Role[], inMemory: boolean = true): void
+     * Initializes the _EdgeDBRoleQuery instance with the provided roles and storage mode.
+     * 
+     * @method
+     * async countRoles(): Promise<number>
+     * Returns the number of roles stored.
+     * 
+     * @method
+     * async query(roleId?: string, permissionKey?: string): Promise<{ [roleId: string]: RolePermissions } | RolePermissions | string | null>
+     * Queries the roles and permissions based on the provided role ID and/or permission key.
+     * 
+     * @method
+     * async validate(roleId: string, permissionKey: string, permissionVal: string): Promise<boolean>
+     * Validates a permission value for a given role ID and permission key.
+     * 
+     * @static
+     * @property {number} totalRoles - The total number of roles.
+     * @property {{ [roleId: string]: RolePermissions } | null} roles - A dictionary mapping role IDs to permissions.
+    */
     static totalRoles: number = 0;
     static roles: { [roleId: string]: RolePermissions } | null = null;
-    static instances: AuthLiteClient[] = [];
 
     inMemory: boolean;
     conn: sqlite3.Database | null = null;
 
     constructor(roles: Role[], inMemory: boolean = true) {
+        /**
+         * Initializes the _EdgeDBRoleQuery instance.
+         * 
+         * @param {Role[]} roles - A list of dictionaries representing roles and their permissions.
+         * @param {boolean} [inMemory=true] - Flag indicating whether to store the roles in-memory or in a SQLite database. Defaults to true.
+         */
         this.inMemory = inMemory;
 
         if (this.inMemory) {
@@ -40,6 +71,11 @@ export class _EdgeDBRoleQuery
     }
 
     async countRoles(): Promise<number> {
+        /**
+         * Returns the number of roles stored.
+         * 
+         * @returns {Promise<number>} - The number of roles stored.
+         */
         return new Promise<number>((resolve, reject) => {
             if (this.inMemory) {
                 const r = Object.keys(_EdgeDBRoleQuery.roles || {}).length;
@@ -63,7 +99,15 @@ export class _EdgeDBRoleQuery
         });
     }
 
-    async query(roleId?: string, permissionKey?: string): Promise<{ [roleId: string]: RolePermissions } | RolePermissions | string | null> {
+    async query(roleId?: string, permissionKey?: string): Promise<{ [roleId: string]: RolePermissions }
+        | RolePermissions | string | null> {
+        /**
+         * Queries the roles and permissions based on the provided role ID and/or permission key.
+         * 
+         * @param {string} [roleId] - The role ID to query.
+         * @param {string} [permissionKey] - The permission key to query.
+         * @returns {Promise<{ [roleId: string]: RolePermissions } | RolePermissions | string | null>} - The queried roles, permissions, or permission value, depending on the provided arguments.
+        */
         return new Promise<any>((resolve, reject) => {
             if (this.inMemory) {
                 if (roleId && permissionKey) {
@@ -130,6 +174,14 @@ export class _EdgeDBRoleQuery
     }
 
     async validate(roleId: string, permissionKey: string, permissionVal: string): Promise<boolean> {
+        /**
+         * Validates a permission value for a given role ID and permission key.
+         * 
+         * @param {string} roleId - The role ID to validate.
+         * @param {string} permissionKey - The permission key to validate.
+         * @param {string} permissionVal - The expected permission value to validate.
+         * @returns {Promise<boolean>} - True if the permission value matches the expected value, False otherwise.
+         */
         return new Promise<boolean>((resolve, reject) => {
             if (this.inMemory) {
                 const permissions = _EdgeDBRoleQuery.roles?.[roleId];
@@ -147,5 +199,34 @@ export class _EdgeDBRoleQuery
         });
     }
 
-    //edge wrapper and reinit roles
+    //To be added.
+    /*
+    static reinitializeAll(foreground: boolean = true): void {
+        if (foreground) {
+            for (let instance of AuthLiteClient.instances) {
+                instance._reInitRoles();
+            }
+        } else {
+            setTimeout(() => {
+                for (let instance of AuthLiteClient.instances) {
+                    instance._reInitRoles();
+                }
+            }, 0);
+        }
+    }
+
+    static EDGEWrapper(func: Function): Function {
+        return function(...args: any[]): any {
+            // Call the function
+            let response = func(...args);
+            // Check for "X-EDGE"
+            let xEdge = response.headers.get("X-EDGE");
+            if (xEdge) {
+                if (parseInt(xEdge) != _EdgeDBRoleQuery.totalRoles) {
+                    _EdgeDBRoleQuery.reinitializeAll();  // Add data
+                }
+            }
+            return response;
+        }
+    }*/
 }

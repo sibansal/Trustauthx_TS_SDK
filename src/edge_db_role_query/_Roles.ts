@@ -2,7 +2,7 @@ import { _EdgeDBRoleQuery } from "./EdgeDBRoleQuery";
 import { Role } from "./Role";
 export class _Roles extends _EdgeDBRoleQuery
 {
-    instances: _Roles[] = [];
+    static instances: _Roles[] = [];
 
     org_id: string;
     _api_key: string;
@@ -25,7 +25,7 @@ export class _Roles extends _EdgeDBRoleQuery
         this._secret_key = secret_key
         this._signed_key = signed_key
         this.API_BASE_URL = API_BASE_URL
-        this.instances.push(this)
+        _Roles.instances.push(this)
         console.log(_Roles.roles)
     }
 }
