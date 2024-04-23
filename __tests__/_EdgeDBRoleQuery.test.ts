@@ -1,5 +1,5 @@
 import { _EdgeDBRoleQuery } from "../src/_EdgeDBRoleQuery";
-import { roles } from "./common.test";
+import { roles } from "../jest.common";
 
 describe('_EdgeDBRoleQuery', () => {
     let roleQuery;

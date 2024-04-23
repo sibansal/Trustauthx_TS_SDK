@@ -1,6 +1,6 @@
 import { _EdgeDBRoleQuery } from "../src/_EdgeDBRoleQuery";
 import { AuthLiteClient } from "../src/index";
-import { api_key, org_id, secret_key } from "./common.test";
+import { api_key, org_id, secret_key } from "./../jest.common";
 
 const mockedInstances = [new AuthLiteClient(api_key, secret_key, org_id), new AuthLiteClient(api_key, secret_key)];
 

@@ -19,6 +19,9 @@ const config: Config = {
   },
   // Module file extensions for importing
   moduleFileExtensions: ['ts', 'js', 'json', 'node','test.ts', 'static.test.ts'],
+
+  setupFiles: ['<rootDir>/jest.setup.ts']
+  
 };
 
 export default config;

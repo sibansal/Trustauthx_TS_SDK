@@ -1,4 +1,4 @@
-import { Role } from "../src/scheme";
+import { Role } from "./src/scheme";
 
 export const roles: Role[] = [
     {

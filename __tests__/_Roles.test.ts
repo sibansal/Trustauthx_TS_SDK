@@ -1,5 +1,5 @@
 import { _Roles } from "../src/_Roles";
-import { roles } from "./common.test";
+import { roles } from "../jest.common";
 
 describe("_Roles", () => {
   const org_id = "4195502c85984d27ae1aceb677d99551543808625aeb11ee88069dc8f7663e88";

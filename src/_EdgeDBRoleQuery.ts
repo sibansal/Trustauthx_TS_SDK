@@ -214,20 +214,22 @@ export class _EdgeDBRoleQuery {
     }
 
     public static EDGEWrapper(func: Function) {
-        return async function wrapper(...args: any[]):Promise<Response> {
-          // Call the function
-          const response = await func(...args);
-          
-          // Check for "X-EDGE"
-          const xEdge = response.headers.get("X-EDGE");
-          if (xEdge) {
-            if (parseInt(xEdge) !== _EdgeDBRoleQuery.totalRoles) {
-              _EdgeDBRoleQuery.reinitializeAll();
+        return async function wrapper(...args: any[]): Promise<Response> {
+            // Call the function
+            const response = await func(...args);
+
+            if (response && response.headers) {
+                // Check for "X-EDGE"
+                const xEdge = response.headers.get("X-EDGE");
+                if (xEdge) {
+                    if (parseInt(xEdge) !== _EdgeDBRoleQuery.totalRoles) {
+                        _EdgeDBRoleQuery.reinitializeAll();
+                    }
+                }
             }
-          }
-      
-          // Add data
-          return response;
+
+            // Add data
+            return response;
         };
-      }
+    }
 }
