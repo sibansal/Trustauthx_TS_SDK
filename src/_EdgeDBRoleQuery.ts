@@ -1,10 +1,9 @@
 import * as sqlite3 from 'sqlite3';
-import {Permission as RolePermissions} from './scheme';
-import {Role} from './scheme';
+import { Permission as RolePermissions } from './scheme';
+import { Role } from './scheme';
 import { AuthLiteClient } from '.';
 
-export class _EdgeDBRoleQuery
-{
+export class _EdgeDBRoleQuery {
     /**
      * A class for querying and managing roles and permissions.
      * 
@@ -154,9 +153,9 @@ export class _EdgeDBRoleQuery
          * @returns {Promise<boolean>} - True if the permission value matches the expected value, False otherwise.
          */
         return new Promise<boolean>((resolve, reject) => {
-            let permissions:RolePermissions|null;
+            let permissions: RolePermissions | null;
             if (this.inMemory) {
-                permissions = _EdgeDBRoleQuery.roles?.[roleId];   
+                permissions = _EdgeDBRoleQuery.roles?.[roleId];
             } else {
                 this.conn!.get('SELECT permissions FROM roles WHERE role_id = ?', [roleId], (err, row: { permissions: string }) => {
                     if (err) {
@@ -200,9 +199,7 @@ export class _EdgeDBRoleQuery
         });
     }
 
-    //To be added.
-    /*
-    static reinitializeAll(foreground: boolean = true): void {
+    public static reinitializeAll(foreground: boolean = true): void {
         if (foreground) {
             for (let instance of AuthLiteClient.instances) {
                 instance._reInitRoles();
@@ -216,18 +213,21 @@ export class _EdgeDBRoleQuery
         }
     }
 
-    static EDGEWrapper(func: Function): Function {
-        return function(...args: any[]): any {
-            // Call the function
-            let response = func(...args);
-            // Check for "X-EDGE"
-            let xEdge = response.headers.get("X-EDGE");
-            if (xEdge) {
-                if (parseInt(xEdge) != _EdgeDBRoleQuery.totalRoles) {
-                    _EdgeDBRoleQuery.reinitializeAll();  // Add data
-                }
+    public static EDGEWrapper(func: Function) {
+        return async function wrapper(...args: any[]):Promise<Response> {
+          // Call the function
+          const response = await func(...args);
+          
+          // Check for "X-EDGE"
+          const xEdge = response.headers.get("X-EDGE");
+          if (xEdge) {
+            if (parseInt(xEdge) !== _EdgeDBRoleQuery.totalRoles) {
+              _EdgeDBRoleQuery.reinitializeAll();
             }
-            return response;
-        }
-    }*/
+          }
+      
+          // Add data
+          return response;
+        };
+      }
 }

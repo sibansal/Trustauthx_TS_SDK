@@ -18,7 +18,7 @@ const config: Config = {
     '^.+\\.ts$': 'ts-jest',
   },
   // Module file extensions for importing
-  moduleFileExtensions: ['ts', 'js', 'json', 'node','test.ts'],
+  moduleFileExtensions: ['ts', 'js', 'json', 'node','test.ts', 'static.test.ts'],
 };
 
 export default config;
