@@ -1,8 +1,9 @@
 import { decodeJwt, JWTPayload, SignJWT } from 'jose';
 import { GetUser, TokenCheck } from './types';
 import { _EdgeDBRoleQuery } from './_EdgeDBRoleQuery';
-import { GetAllRolesResponse, Role } from './scheme';
+import { Role, SignOffSessionReplace } from './scheme';
 import { makeRequest } from './utils';
+import { _Roles } from './_Roles';
 
 export class AuthLiteClient {
   private secretKey: string;
@@ -12,6 +13,7 @@ export class AuthLiteClient {
   private orgId?: string;
   private API_BASE_URL: string;
   private InMemory: boolean;
+  private Roles: _Roles;
 
   static instances: AuthLiteClient[] = [];
 
@@ -19,8 +21,8 @@ export class AuthLiteClient {
   // TODO: add babel support for top-level-await to cjs
   // TODO: replace (un)condition checks for signed-key with async instance constructor
   constructor(apiKey: string, secretKey: string, orgId?: string,
-    API_BASE_URL:string="https://api.trustauthx.com",
-    in_memory:boolean=true) {
+    API_BASE_URL: string = "https://api.trustauthx.com",
+    in_memory: boolean = true) {
     this.secretKey = secretKey;
     this.apiKey = apiKey;
     this.orgId = orgId;
@@ -28,6 +30,8 @@ export class AuthLiteClient {
     this.data = { api_key: this.apiKey };
     this.API_BASE_URL = API_BASE_URL;
     this.InMemory = in_memory;
+    this.setEdgeRoles();
+    AuthLiteClient.instances.push(this)
   }
 
   private async getEncodedJWT(): Promise<string> {
@@ -43,9 +47,8 @@ export class AuthLiteClient {
 
   generateUrl(subDomain?: string): string {
     if (this.orgId)
-      return `https://${
-        subDomain ? `${subDomain}.` : ''
-      }app.trustauthx.com/widget/login/?org_id=${this.orgId}`;
+      return `https://${subDomain ? `${subDomain}.` : ''
+        }app.trustauthx.com/widget/login/?org_id=${this.orgId}`;
     else throw new Error('Must provide org_id');
   }
 
@@ -88,8 +91,7 @@ export class AuthLiteClient {
         return { email: decoded.email, uid: decoded.uid };
       } else {
         throw new Error(
-          `Request failed with status code: ${
-            response.status
+          `Request failed with status code: ${response.status
           }\n${await response.text()}`
         );
       }
@@ -128,8 +130,7 @@ export class AuthLiteClient {
         return { ...decoded, ...decodedSub };
       } else {
         throw new Error(
-          `Request failed with status code: ${
-            response.status
+          `Request failed with status code: ${response.status
           }\n${await response.text()}`
         );
       }
@@ -160,8 +161,7 @@ export class AuthLiteClient {
         return await response.json();
       } else {
         throw new Error(
-          `Request failed with status code: ${
-            response.status
+          `Request failed with status code: ${response.status
           }\n${await response.text()}`
         );
       }
@@ -266,8 +266,7 @@ export class AuthLiteClient {
         };
       } else {
         throw new Error(
-          `Request failed with status code: ${
-            response.status
+          `Request failed with status code: ${response.status
           }\n${await response.text()}`
         );
       }
@@ -308,7 +307,8 @@ export class AuthLiteClient {
     }
   }
 
-  async _set_edge_roles(): Promise<GetAllRolesResponse> {
+  //Rbac
+  async setEdgeRoles(): Promise<Role[]> {
     const url = `${this.API_BASE_URL}/rbac/role`;
     const headers = { "accept": "application/json" };
     const params = {
@@ -317,248 +317,131 @@ export class AuthLiteClient {
       "signed_key": `${this.signedKey}`,
     };
     const response = await makeRequest(url, { headers, params });
-    let roles:Role[] = await response.json();
-    return {
-      roles_list: roles,
-      roles_json_list:roles.map((role) => ({ ...role })),
-    };
+    let roles: Role[] = await response.json();
+    return roles
   }
 
-  async _reInitRoles(): Promise<void> {}
-  /**
-   *     
-def _set_edge_roles(self) -> list:
-        # self.Roles
-        url = f"{self.API_BASE_URL}/rbac/role"
-        headers = {"accept": "application/json"}
-        params = {
-            "org_id": f"{self.org_id}",
-            "api_key": f"{self._api_key}",
-            "signed_key": f"{self._signed_key}",
-        }
-        response = requests.get(url, headers=headers, params=params)
-        roles = [Role(**role_data) for role_data in response.json()]
-        roles = GetAllRolesResponse(
-            roles_list=roles, roles_json_list=[asdict(role) for role in roles]
-        )
-        # print(roles.roles_json_list)
-        return roles.roles_json_list
-        
-    def _re_init_roles(self) -> _Roles:
-        self.Roles: _Roles = _Roles(
-            roles=self._set_edge_roles(),
-            org_id=self.org_id,
-            api_key=self._api_key,
-            signed_key=self._signed_key,
-            secret_key=self._secret_key,
-            API_BASE_URL=self.API_BASE_URL,
-            InMemory=self.in_memory,
-        )
-        return self.Roles
 
-    def attach_role(
-        self,
-        uid: str,
-        rol_ids: Union[str, list],
-        signoff_session_and_assign=False,
-        refresh_token=None,
-        access_token=None,
-        return_class: bool = False,
-    ) -> Union[dict, SignOffSessionReplace]:
-        """
-        Attaches a role to a user.
+  async _reInitRoles(): Promise<_Roles> {
+    let roles = await this.setEdgeRoles()
+    this.Roles = new _Roles(
+      roles,
+      this.orgId,
+      this.apiKey,
+      this.signedKey,
+      this.secretKey,
+      this.API_BASE_URL,
+      this.InMemory,
+    );
+    return this.Roles;
+  }
 
-        Args:
-            uid (str): The user ID to attach the role to.
-            rol_ids (str | list): The ID(s) of the role(s) to attach.
-            signoff_session_and_assign (bool, optional): Whether to sign off the session and assign. Default is False.
-            refresh_token (str, optional): The refresh token for authentication.
-            access_token (str, optional): The access token for authentication.
-            return_class (bool, optional): Whether to return a class instance. Default is False.
+  async attach_role(
+    uid: string,
+    rol_ids: string | string[],
+    signoff_session_and_assign: boolean = false,
+    refresh_token: string | null = null,
+    access_token: string | null = null,
+    return_class: boolean = false,
+  ): Promise<SignOffSessionReplace> {
+    if (signoff_session_and_assign && (!refresh_token || !access_token)) {
+      throw new Error("must parse refresh_token and access_token if signoff_session_and_assign is true");
+    }
 
-        Returns:
-            dict | SignOffSessionReplace: The response from the API, or a class instance if return_class is True.
+    const url = `${this.API_BASE_URL}/rbac/assign/permission`;
+    const headers = {
+      "accept": "application/json",
+      "Content-Type": "application/json",
+    };
+    const params = {
+      "org_id": this.orgId,
+      "api_key": this.apiKey,
+      "signed_key": this.signedKey,
+    };
+    const rols = Array.isArray(rol_ids) ? rol_ids : [rol_ids];
+    const data = {
+      "uid": uid,
+      "rol_id": rols,
+      "inplace": [],
+      "signoff_session_and_assign": signoff_session_and_assign,
+      "AccessToken": access_token,
+      "RefreshToken": refresh_token,
+    };
+    const response = await makeRequest(url, { headers: headers, params: params, body: data, method: "POST" });
+    return response.json()
+  }
 
-        Raises:
-            ParseError: If signoff_session_and_assign is True but refresh_token or access_token is not provided.
-        """
-        if signoff_session_and_assign:
-            if not refresh_token or not access_token:
-                raise ParseError(
-                    "must parse refresh_token and access_token if signoff_session_and_assign is true"
-                )
-        url = f"{self.API_BASE_URL}/rbac/assign/permission"
-        headers = {
-            "accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        params = {
-            "org_id": self.org_id,
-            "api_key": self._api_key,
-            "signed_key": self._signed_key,
-        }
-        rols = []
-        if isinstance(rol_ids) == str:
-            rols.append(rol_ids)
-        elif isinstance(rol_ids) == list:
-            rols = [i for i in rol_ids]
-        else:
-            raise TypeError()
-        data = {
-            "uid": uid,
-            "rol_id": rol_ids,
-            "inplace": [],
-            "signoff_session_and_assign": signoff_session_and_assign,
-            "AccessToken": access_token,
-            "RefreshToken": refresh_token,
-        }
-        response = requests.post(url, headers=headers, params=params, json=data)
-        if signoff_session_and_assign:
-            return response.json()
-        else:
-            if return_class:
-                return SignOffSessionReplace(response.json())
-            else:
-                return SignOffSessionReplace(response.json()).to_dict()
+  async remove_role(
+    uid: string,
+    rol_ids: string | string[],
+    signoff_session_and_assign: boolean = false,
+    refresh_token: string | null = null,
+    access_token: string | null = null,
+    return_class: boolean = false,
+  ): Promise<SignOffSessionReplace> {
+    if (signoff_session_and_assign && (!refresh_token || !access_token)) {
+      throw new Error("must parse refresh_token and access_token if signoff_session_and_assign is true");
+    }
 
-    def remove_role(
-        self,
-        uid: str,
-        rol_ids: Union[str, list],
-        signoff_session_and_assign=False,
-        refresh_token=None,
-        access_token=None,
-        return_class: bool = False,
-    ) -> Union[dict, SignOffSessionReplace]:
-        """
-        Removes a role from a user.
+    const url = `${this.API_BASE_URL}/rbac/assign/permission`;
+    const headers = {
+      "accept": "application/json",
+      "Content-Type": "application/json",
+    };
+    const params = {
+      "org_id": this.orgId,
+      "api_key": this.apiKey,
+      "signed_key": this.signedKey,
+    };
+    const rols = Array.isArray(rol_ids) ? rol_ids : [rol_ids];
+    const data = {
+      "uid": uid,
+      "rol_id": [],
+      "inplace": rols,
+      "signoff_session_and_assign": signoff_session_and_assign,
+      "AccessToken": access_token,
+      "RefreshToken": refresh_token,
+    };
 
-        Args:
-            uid (str): The user ID to remove the role from.
-            rol_ids (str | list): The ID(s) of the role(s) to remove.
-            signoff_session_and_assign (bool, optional): Whether to sign off the session and assign. Default is False.
-            refresh_token (str, optional): The refresh token for authentication.
-            access_token (str, optional): The access token for authentication.
-            return_class (bool, optional): Whether to return a class instance. Default is False.
+    const response = await makeRequest(url, { headers: headers, params: params, body: data, method: "POST" });
+    return response.json()
+  }
 
-        Returns:
-            dict | SignOffSessionReplace: The response from the API, or a class instance if return_class is True.
+  async update_role(
+    uid: string,
+    rol_ids_to_add: string | string[],
+    rol_ids_to_remove: string | string[],
+    signoff_session_and_assign: boolean = false,
+    refresh_token: string | null = null,
+    access_token: string | null = null,
+    return_class: boolean = false,
+  ): Promise<SignOffSessionReplace> {
+    if (signoff_session_and_assign && (!refresh_token || !access_token)) {
+      throw new Error("must parse refresh_token and access_token if signoff_session_and_assign is true");
+    }
 
-        Raises:
-            ParseError: If signoff_session_and_assign is True but refresh_token or access_token is not provided.
-        """
-        if signoff_session_and_assign:
-            if not refresh_token or not access_token:
-                raise ParseError(
-                    "must parse refresh_token and access_token if signoff_session_and_assign is true"
-                )
-        url = f"{self.API_BASE_URL}/rbac/assign/permission"
-        headers = {
-            "accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        params = {
-            "org_id": self.org_id,
-            "api_key": self._api_key,
-            "signed_key": self._signed_key,
-        }
-        rols = []
-        if isinstance(rol_ids) == str:
-            rols.append(rol_ids)
-        elif isinstance(rol_ids) == list:
-            rols = [i for i in rol_ids]
-        else:
-            raise TypeError()
-        data = {
-            "uid": uid,
-            "rol_id": [],
-            "inplace": rol_ids,
-            "signoff_session_and_assign": signoff_session_and_assign,
-            "AccessToken": access_token,
-            "RefreshToken": refresh_token,
-        }
-        response = requests.post(url, headers=headers, params=params, json=data)
-        if signoff_session_and_assign:
-            return response.json()
-        else:
-            if return_class:
-                return SignOffSessionReplace(response.json())
-            else:
-                return SignOffSessionReplace(response.json()).to_dict()
+    const url = `${this.API_BASE_URL}/rbac/assign/permission`;
+    const headers = {
+      "accept": "application/json",
+      "Content-Type": "application/json",
+    };
+    const params = {
+      "org_id": this.orgId,
+      "api_key": this.apiKey,
+      "signed_key": this.signedKey,
+    };
+    const rols_add = Array.isArray(rol_ids_to_add) ? rol_ids_to_add : [rol_ids_to_add];
+    const rols_rem = Array.isArray(rol_ids_to_remove) ? rol_ids_to_remove : [rol_ids_to_remove];
+    const data = {
+      "uid": uid,
+      "rol_id": rols_add,
+      "inplace": rols_rem,
+      "signoff_session_and_assign": signoff_session_and_assign,
+      "AccessToken": access_token,
+      "RefreshToken": refresh_token,
+    };
 
-    def update_role(
-        self,
-        uid: str,
-        rol_ids_to_add: Union[str, list],
-        rol_ids_to_remove: Union[str, list],
-        signoff_session_and_assign=False,
-        refresh_token=None,
-        access_token=None,
-        return_class: bool = False,
-    ) -> Union[dict, SignOffSessionReplace]:
-        """
-        Updates a user's roles by adding and/or removing roles.
-
-        Args:
-            uid (str): The user ID to update roles for.
-            rol_ids_to_add (str | list): The ID(s) of the role(s) to add.
-            rol_ids_to_remove (str | list): The ID(s) of the role(s) to remove.
-            signoff_session_and_assign (bool, optional): Whether to sign off the session and assign. Default is False.
-            refresh_token (str, optional): The refresh token for authentication.
-            access_token (str, optional): The access token for authentication.
-            return_class (bool, optional): Whether to return a class instance. Default is False.
-
-        Returns:
-            dict | SignOffSessionReplace: The response from the API, or a class instance if return_class is True.
-
-        Raises:
-            ParseError: If signoff_session_and_assign is True but refresh_token or access_token is not provided.
-        """
-        if signoff_session_and_assign:
-            if not refresh_token or not access_token:
-                raise ParseError(
-                    "must parse refresh_token and access_token if signoff_session_and_assign is true"
-                )
-        url = f"{self.API_BASE_URL}/rbac/assign/permission"
-        headers = {
-            "accept": "application/json",
-            "Content-Type": "application/json",
-        }
-        params = {
-            "org_id": self.org_id,
-            "api_key": self._api_key,
-            "signed_key": self._signed_key,
-        }
-        rols_add = []
-        if isinstance(rol_ids_to_add) == str:
-            rols_add.append(rol_ids_to_add)
-        elif isinstance(rol_ids_to_add) == list:
-            rols_add = [i for i in rol_ids_to_add]
-        else:
-            raise TypeError()
-        rols_rem = []
-        if isinstance(rol_ids_to_remove) == str:
-            rols_rem.append(rol_ids_to_remove)
-        elif isinstance(rol_ids_to_remove) == list:
-            rols_rem = [i for i in rol_ids_to_remove]
-        else:
-            raise TypeError()
-        data = {
-            "uid": uid,
-            "rol_id": rols_add,
-            "inplace": rols_rem,
-            "signoff_session_and_assign": signoff_session_and_assign,
-            "AccessToken": access_token,
-            "RefreshToken": refresh_token,
-        }
-        response = requests.post(url, headers=headers, params=params, json=data)
-        if signoff_session_and_assign:
-            return response.json()
-        else:
-            if return_class:
-                return SignOffSessionReplace(response.json())
-            else:
-                return SignOffSessionReplace(response.json()).to_dict()
-   * 
-   */
+    const response = await makeRequest(url, { headers: headers, params: params, body: data, method: "POST" });
+    return response.json()
+  }
 }
