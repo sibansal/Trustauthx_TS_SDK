@@ -30,7 +30,15 @@ export class AuthLiteClient {
     this.data = { api_key: this.apiKey };
     this.API_BASE_URL = API_BASE_URL;
     this.InMemory = in_memory;
-    this.setEdgeRoles();
+    this.Roles = new _Roles(
+      [],
+      this.orgId,
+      this.apiKey,
+      this.signedKey,
+      this.secretKey,
+      this.API_BASE_URL,
+      this.InMemory,
+    );
     AuthLiteClient.instances.push(this)
   }
 
