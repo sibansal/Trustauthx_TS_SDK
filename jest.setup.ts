@@ -1,1 +1,1 @@
-import './src/utils'
+import './src/index'
