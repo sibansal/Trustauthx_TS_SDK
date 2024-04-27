@@ -1,7 +1,13 @@
 import { _EdgeDBRoleQuery } from "../src/_EdgeDBRoleQuery";
-import { roles } from "../jest.common";
+import { API_BASE_URL, roles, signed_key } from "../jest.common";
+import { api_key, org_id, secret_key } from "./../jest.common";
+import { AuthLiteClient } from "../src";
+import { _Roles } from "../src/_Roles";
 
 describe('_EdgeDBRoleQuery', () => {
+    
+    const mockedInstances = [new AuthLiteClient(api_key, secret_key, org_id), new AuthLiteClient(api_key, secret_key)];
+    
     let roleQuery;
 
     beforeEach(() => {
@@ -68,6 +74,82 @@ describe('_EdgeDBRoleQuery', () => {
         test('should return false for invalid permission', async () => {
             const isValid = await roleQuery.validate('rol_YHV_78ae9006bcaa4c77', 'viewer', 'user');
             expect(isValid).toBe(false);
+        });
+    });
+
+    describe('reinitializeAll', () => {
+        test('should call _reInitRoles on all AuthLiteClient instances when foreground is true', () => {
+            const foreground = true;
+
+            const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
+            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+
+            _EdgeDBRoleQuery.reinitializeAll(foreground);
+
+            expect(spy).toHaveBeenCalledTimes(mockedInstances.length);
+            spy.mockRestore();
+        });
+
+        test('should call _reInitRoles on all AuthLiteClient instances asynchronously when foreground is false', async () => {
+            jest.useFakeTimers();
+            const foreground = false;
+
+            const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
+            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+
+            _EdgeDBRoleQuery.reinitializeAll(foreground);
+
+            expect(spy).toHaveBeenCalledTimes(0);
+
+            jest.runAllTimers();
+
+            expect(spy).toHaveBeenCalledTimes(mockedInstances.length);
+            spy.mockRestore();
+
+            jest.useRealTimers();
+        });
+    });
+
+    describe('EDGEWrapper', () => {
+        test('should call reinitializeAll when X-EDGE header does not match totalRoles', async () => {
+            const funcMock = jest.fn();
+            const responseMock = { headers: { get: jest.fn() } };
+            const reinitializeAllMock = jest.spyOn(_EdgeDBRoleQuery, 'reinitializeAll');
+            
+            const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
+            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+    
+            _EdgeDBRoleQuery.totalRoles = 5;
+            funcMock.mockResolvedValue(responseMock);
+            responseMock.headers.get.mockReturnValue('10');
+    
+            const wrappedFunc = _EdgeDBRoleQuery.EDGEWrapper(funcMock);
+            await wrappedFunc();
+    
+            expect(reinitializeAllMock).toHaveBeenCalled();
+    
+            reinitializeAllMock.mockRestore();
+        });
+    
+        test('should not call reinitializeAll when X-EDGE header matches totalRoles', async () => {
+            const funcMock = jest.fn();
+            const responseMock = { headers: { get: jest.fn() } };
+            const reinitializeAllMock = jest.spyOn(_EdgeDBRoleQuery, 'reinitializeAll');
+
+            
+            const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
+            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+    
+            _EdgeDBRoleQuery.totalRoles = 5;
+            funcMock.mockResolvedValue(responseMock);
+            responseMock.headers.get.mockReturnValue('5');
+    
+            const wrappedFunc = _EdgeDBRoleQuery.EDGEWrapper(funcMock);
+            await wrappedFunc();
+    
+            expect(reinitializeAllMock).not.toHaveBeenCalled();
+    
+            reinitializeAllMock.mockRestore();
         });
     });
 });
