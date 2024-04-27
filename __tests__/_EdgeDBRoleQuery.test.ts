@@ -5,9 +5,9 @@ import { AuthLiteClient } from "../src";
 import { _Roles } from "../src/_Roles";
 
 describe('_EdgeDBRoleQuery', () => {
-    
+
     const mockedInstances = [new AuthLiteClient(api_key, secret_key, org_id), new AuthLiteClient(api_key, secret_key)];
-    
+
     let roleQuery;
 
     beforeEach(() => {
@@ -115,40 +115,40 @@ describe('_EdgeDBRoleQuery', () => {
             const funcMock = jest.fn();
             const responseMock = { headers: { get: jest.fn() } };
             const reinitializeAllMock = jest.spyOn(_EdgeDBRoleQuery, 'reinitializeAll');
-            
+
             const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
-            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
-    
+            jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+
             _EdgeDBRoleQuery.totalRoles = 5;
             funcMock.mockResolvedValue(responseMock);
             responseMock.headers.get.mockReturnValue('10');
-    
+
             const wrappedFunc = _EdgeDBRoleQuery.EDGEWrapper(funcMock);
             await wrappedFunc();
-    
+
             expect(reinitializeAllMock).toHaveBeenCalled();
-    
+
             reinitializeAllMock.mockRestore();
         });
-    
+
         test('should not call reinitializeAll when X-EDGE header matches totalRoles', async () => {
             const funcMock = jest.fn();
             const responseMock = { headers: { get: jest.fn() } };
             const reinitializeAllMock = jest.spyOn(_EdgeDBRoleQuery, 'reinitializeAll');
 
-            
+
             const mockedRolesInstance = new _Roles(roles, org_id, api_key, signed_key, secret_key, API_BASE_URL);
-            const spy = jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
-    
+            jest.spyOn(AuthLiteClient.prototype, '_reInitRoles').mockImplementation(() => Promise.resolve(mockedRolesInstance));
+
             _EdgeDBRoleQuery.totalRoles = 5;
             funcMock.mockResolvedValue(responseMock);
             responseMock.headers.get.mockReturnValue('5');
-    
+
             const wrappedFunc = _EdgeDBRoleQuery.EDGEWrapper(funcMock);
             await wrappedFunc();
-    
+
             expect(reinitializeAllMock).not.toHaveBeenCalled();
-    
+
             reinitializeAllMock.mockRestore();
         });
     });
