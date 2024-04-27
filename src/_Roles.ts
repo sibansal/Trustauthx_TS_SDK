@@ -5,6 +5,38 @@ import { makeRequest } from "./utils";
 
 /**
  * _Roles class extends _EdgeDBRoleQuery to manage roles and permissions.
+ * 
+ * @property {string} org_id - Organization ID.
+ * @property {string} _api_key - API key.
+ * @property {string} _secret_key - Secret key.
+ * @property {string} _signed_key - Signed key.
+ * @property {string} API_BASE_URL - Base URL for the API.
+ * 
+ * @method
+ * constructor(roles: Role[], org_id: string, api_key: string, signed_key: string, secret_key: string, API_BASE_URL: string, InMemory: boolean = true): void
+ * Constructs a new _Roles instance.
+ * 
+ * @method
+ * async get_all_roles(): Promise<GetAllRolesResponse>
+ * Fetches all roles.
+ * 
+ * @method
+ * async add_role(name: string, permissions: Permission[]): Promise<AddRoleResponse>
+ * Adds a new role.
+ * 
+ * @method
+ * async delete_role(rol_id: string): Promise<DeleteRoleResponse>
+ * Deletes a role.
+ * 
+ * @method
+ * async add_permission(rol_id: string, permissions: Permission[]): Promise<AddPermissionResponse>
+ * Adds permissions to a role.
+ * 
+ * @method
+ * async delete_permission(rol_id: string, permissions: Permission[]): Promise<DeletePermissionResponse>
+ * Deletes permissions from a role.
+ * @static
+ * @property {_Roles[]} instances - Array of _Roles instances.
  */
 export class _Roles extends _EdgeDBRoleQuery {
   static instances: _Roles[] = [];
